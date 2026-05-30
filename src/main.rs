@@ -34,6 +34,6 @@ fn check_command(command: &str, res_args: &[String]) {
         println!("");
         io::stdout().flush().unwrap();
     } else {
-        eprintln!("{}: command not found!", command);
+        eprintln!("{}: command not found", command);
     }
 }
