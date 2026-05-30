@@ -1,6 +1,7 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::{env, path::Path, process::Command};
+use std::{env, path::Path};
+use std::os::unix::fs::PermissionsExt;
 
 enum Commands {
     Echo,
@@ -62,16 +63,20 @@ fn check_command(command: &str, res_args: &[String]) {
                 if res_args.len() == 1 {
                     if let Ok(_) = parser(res_args[0].as_str()) {
                         println!("{} is a shell builtin", res_args[0]);
+                        return;
                     } 
                     match env::var("PATH") {
                         Ok(path) => {
                             let directories: Vec<String> = path.split(":").map(|s| s.to_string()).collect();
                             for dir in directories {
                                 let path = format!("{}/{}", dir, res_args[0]);
-
+                                
                                 if Path::new(&path).is_file() {
-                                    println!("{} is {}", res_args[0], path);
-                                    return;
+                                    let metadata = std::fs::metadata(&path).unwrap();
+                                    if metadata.permissions().mode() & 0o111 != 0 {
+                                        println!("{} is {}", res_args[0], path);
+                                        return;
+                                    }
                                 }
                             }
                             eprintln!("{}: not found", res_args[0]);
