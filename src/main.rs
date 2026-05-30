@@ -9,5 +9,5 @@ fn main() {
     let mut command = String::new();
     io::stdin().read_line(&mut command).unwrap();
 
-    eprint!("{} nigga, are you dumb!", command.trim());
+    eprint!("{}: command not found", command.trim());
 }
