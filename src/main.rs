@@ -62,7 +62,7 @@ fn check_command(command: &str, res_args: &[String]) {
                     if let Ok(_) = parser(res_args[0].as_str()) {
                         println!("{} is a shell builtin", res_args[0]);
                     } else {
-                        eprintln!("invalid_command: not found");
+                        eprintln!("{}: not found", res_args[0]);
                     }
                 }
             }
