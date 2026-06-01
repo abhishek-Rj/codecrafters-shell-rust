@@ -9,6 +9,7 @@ enum BuiltInCommands {
     Exit,
     Echo,
     Type,
+    Pwd,
 }
 
 enum Commands {
@@ -45,6 +46,8 @@ fn lexer(command: &str) -> Result<Commands, String> {
         Ok(Commands::Builtin(BuiltInCommands::Type))
     } else if command == "exit" {
         Ok(Commands::Builtin(BuiltInCommands::Exit))
+    } else if command == "pwd" {
+        Ok(Commands::Builtin(BuiltInCommands::Pwd))
     } else {
         match env::var("PATH") {
             Ok(path) => {
@@ -98,6 +101,18 @@ fn parser(command: &str, res_args: &[String]) {
                         eprintln!("{}: not found", res_args[0]);
                         return;
                     } 
+                }
+            },
+            Commands::Builtin(BuiltInCommands::Pwd) => {
+                match env::current_dir() {
+                    Ok(path) => {
+                        println!("{}", path.display());
+                        return;
+                    },
+                    Err(e) => {
+                        eprintln!("Error getting current directory! {}", e.to_string());
+                        return
+                    }
                 }
             },
             Commands::External(_) => {
