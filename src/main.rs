@@ -10,6 +10,7 @@ enum BuiltInCommands {
     Echo,
     Type,
     Pwd,
+    CurrentDirectory
 }
 
 enum Commands {
@@ -48,6 +49,8 @@ fn lexer(command: &str) -> Result<Commands, String> {
         Ok(Commands::Builtin(BuiltInCommands::Exit))
     } else if command == "pwd" {
         Ok(Commands::Builtin(BuiltInCommands::Pwd))
+    } else if command == "cd" {
+        Ok(Commands::Builtin(BuiltInCommands::CurrentDirectory))
     } else {
         match env::var("PATH") {
             Ok(path) => {
@@ -114,6 +117,38 @@ fn parser(command: &str, res_args: &[String]) {
                         return
                     }
                 }
+            },
+            #[allow(unused_mut)]
+            Commands::Builtin(BuiltInCommands::CurrentDirectory) => {
+                let home = env::var("HOME").unwrap();               
+                let mut new_current_dir: String = String::new();
+                if res_args[0] == "~" {
+                    new_current_dir = home;
+                    match env::set_current_dir(new_current_dir) {
+                        Ok(_) => {}
+                        Err(_) => {eprintln!("Cannot change the directory for idk what reason");}
+                    }
+                } else if res_args[0] == ".." {
+                    let current_dir = env::current_dir().unwrap().display().to_string();
+                    let vec: Vec<String> = current_dir.split("/").map(|s| s.to_string()).collect();
+                    let new_current_directory_vec = &vec[..vec.len() - 1];
+                    for i in new_current_directory_vec {
+                        new_current_dir.push_str(i);     
+                        new_current_dir.push('/');
+                    }
+                    match env::set_current_dir(new_current_dir) {
+                        Ok(_) => {}
+                        Err(_) => {eprintln!("Cannot change the directory for idk what reason");}
+                    }
+                } else if res_args[0] == "." {
+                    ()
+                } else {
+                    match env::set_current_dir(res_args[0].to_string()) {
+                        Ok(_) => {},
+                        Err(_) => {eprintln!("Cannot change the directory for idk what reason ");}
+                    }
+                }
+                
             },
             Commands::External(_) => {
                 let output = Command::new(command).args(&res_args[..]).output().expect("failed to execute program");
