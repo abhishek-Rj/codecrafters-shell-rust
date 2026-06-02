@@ -124,10 +124,7 @@ fn parser(command: &str, res_args: &[String]) {
                 let mut new_current_dir: String = String::new();
                 if res_args[0] == "~" {
                     new_current_dir = home;
-                    match env::set_current_dir(new_current_dir) {
-                        Ok(_) => {}
-                        Err(_) => {eprintln!("Cannot change the directory for idk what reason");}
-                    }
+                    change_current_directory(&new_current_dir);
                 } else if res_args[0] == ".." {
                     let current_dir = env::current_dir().unwrap().display().to_string();
                     let vec: Vec<String> = current_dir.split("/").map(|s| s.to_string()).collect();
@@ -136,17 +133,11 @@ fn parser(command: &str, res_args: &[String]) {
                         new_current_dir.push_str(i);     
                         new_current_dir.push('/');
                     }
-                    match env::set_current_dir(new_current_dir) {
-                        Ok(_) => {}
-                        Err(_) => {eprintln!("Cannot change the directory for idk what reason");}
-                    }
+                    change_current_directory(&new_current_dir);
                 } else if res_args[0] == "." {
                     ()
                 } else {
-                    match env::set_current_dir(res_args[0].to_string()) {
-                        Ok(_) => {},
-                        Err(_) => {eprintln!("Cannot change the directory for idk what reason ");}
-                    }
+                    change_current_directory(&new_current_dir);
                 }
                 
             },
@@ -162,6 +153,12 @@ fn parser(command: &str, res_args: &[String]) {
     }
 }
 
+fn change_current_directory(path: &String) {
+    match env::set_current_dir(path) {
+        Ok(_) => {}
+        Err(_) => {eprintln!("cd {}: No such file or directory", path);}
+    }
+}
 fn if_file_exist_and_executable(path: &String) -> bool {
     if Path::new(path).is_file() {
         let metadata = std::fs::metadata(path).unwrap();
