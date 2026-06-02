@@ -156,7 +156,7 @@ fn parser(command: &str, res_args: &[String]) {
 fn change_current_directory(path: &String) {
     match env::set_current_dir(path) {
         Ok(_) => {}
-        Err(_) => {eprintln!("cd {}: No such file or directory", path);}
+        Err(_) => {eprintln!("cd: {}: No such file or directory", path);}
     }
 }
 fn if_file_exist_and_executable(path: &String) -> bool {
