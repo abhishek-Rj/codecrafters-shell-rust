@@ -137,7 +137,7 @@ fn parser(command: &str, res_args: &[String]) {
                 } else if res_args[0] == "." {
                     ()
                 } else {
-                    change_current_directory(&new_current_dir);
+                    change_current_directory(&res_args[0]);
                 }
                 
             },
