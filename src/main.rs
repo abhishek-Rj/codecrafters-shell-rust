@@ -34,9 +34,31 @@ fn main() {
         if command.trim() == String::from("exit") {
             break;
         }
+        let mut current: String =  String::new();
+        let mut token: Vec<String> = Vec::new();
+        let mut is_single_quotes: bool = false;
 
-        let args: Vec<String> = command.trim().split(" ").map(|s| s.to_string()).collect();
-        parser(args[0].as_str(), &args[1..]); 
+        for i in command.chars() {
+            match i {
+                '\'' => {
+                    is_single_quotes = !is_single_quotes;
+                }
+                ' ' if !is_single_quotes => {
+                    if !current.is_empty() {
+                        token.push(std::mem::take(&mut current));
+                    }
+                }
+                _ => {
+                    current.push(i);     
+                }
+            }
+        }
+
+        if !current.is_empty() {
+            token.push(current.trim().to_string());
+        }
+
+        parser(token[0].as_str(), &token[1..]); 
     }
 }
 
@@ -118,7 +140,8 @@ fn parser(command: &str, res_args: &[String]) {
                     }
                 }
             },
-            #[allow(unused_mut)]
+
+            //#[allow(unused_mut)]
             Commands::Builtin(BuiltInCommands::CurrentDirectory) => {
                 let home = env::var("HOME").unwrap();               
                 let mut new_current_dir: String = String::new();
@@ -159,6 +182,7 @@ fn change_current_directory(path: &String) {
         Err(_) => {eprintln!("cd: {}: No such file or directory", path);}
     }
 }
+
 fn if_file_exist_and_executable(path: &String) -> bool {
     if Path::new(path).is_file() {
         let metadata = std::fs::metadata(path).unwrap();
