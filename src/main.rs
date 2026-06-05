@@ -45,6 +45,7 @@ fn main() {
                 '\\' => {
                     if is_backslash {
                         current.push(i);                        
+                        is_backslash = !is_backslash;
                     } else {
                         is_backslash = !is_backslash;
                     }
@@ -70,7 +71,7 @@ fn main() {
                     if is_backslash {
                         current.push(i);
                         is_backslash = !is_backslash;
-                    } else if !is_single_quotes && !is_double_quotes {
+                    } else if !is_single_quotes && !is_double_quotes && !is_backslash {
                         if !current.is_empty() {
                             token.push(std::mem::take(&mut current));
                         }
@@ -78,6 +79,9 @@ fn main() {
                 }
                 _ => {
                     current.push(i);     
+                    if is_backslash {
+                        is_backslash = !is_backslash;
+                    }
                 }
             }
         }
@@ -128,7 +132,7 @@ fn parser(command: &str, res_args: &[String]) {
                 ()
             },
             Commands::Builtin(BuiltInCommands::Echo) => {
-                //println!("{:?}", res_args);
+                println!("{:?}", res_args);
                 for i in 0..res_args.len() {
                     print!("{}", res_args[i]);
                     if i != res_args.len() - 1 {
@@ -193,6 +197,7 @@ fn parser(command: &str, res_args: &[String]) {
                 
             },
             Commands::External(_) => {
+                println!("{:?}", res_args);
                 let output = Command::new(command).args(&res_args[..]).output().expect("failed to execute program");
                 let stdout = output.stdout;
                 print!("{}", String::from_utf8_lossy(&stdout));
