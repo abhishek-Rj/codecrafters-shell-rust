@@ -67,7 +67,7 @@ fn main() {
                         is_double_quotes = !is_double_quotes;
                     }
                 }
-                ' ' if !is_single_quotes && !is_double_quotes => {
+                ' ' if !is_single_quotes && !is_double_quotes && !is_backslash => {
                     if !current.is_empty() {
                         token.push(std::mem::take(&mut current));
                     }
@@ -75,7 +75,6 @@ fn main() {
                 ' ' if is_backslash => {
                     current.push(i);
                     is_backslash = !is_backslash;
-
                 }
                 _ => {
                     current.push(i);     
