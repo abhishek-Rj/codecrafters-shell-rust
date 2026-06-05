@@ -38,23 +38,43 @@ fn main() {
         let mut token: Vec<String> = Vec::new();
         let mut is_single_quotes: bool = false;
         let mut is_double_quotes: bool = false;
+        let mut is_backslash: bool = false;
 
         for i in command.chars() {
             match i {
+                '\\' => {
+                    if is_backslash {
+                        current.push(i);                        
+                    } else {
+                        is_backslash = !is_backslash;
+                    }
+                }
                 '\'' => {
-                    if is_double_quotes {
+                    if is_double_quotes || is_backslash {
                         current.push(i);
+                        is_backslash = !is_backslash;
                     } else {
                         is_single_quotes = !is_single_quotes;
                     }
                 }
                 '\"' => {
-                    is_single_quotes = !is_single_quotes;
-                    is_double_quotes = !is_double_quotes;
+                    if is_backslash {
+                        current.push(i);
+                        is_backslash = !is_backslash;
+                    } else {
+                        is_single_quotes = !is_single_quotes;
+                        is_double_quotes = !is_double_quotes;
+                    }
                 }
-                ' ' if !is_single_quotes && !is_double_quotes => {
-                    if !current.is_empty() {
-                        token.push(std::mem::take(&mut current));
+                ' '  => {
+                    if is_backslash {
+                        current.push(i);
+                        is_backslash = !is_backslash;
+                    }
+                    if !is_single_quotes && !is_double_quotes {
+                        if !current.is_empty() {
+                            token.push(std::mem::take(&mut current));
+                        }
                     }
                 }
                 _ => {
@@ -64,7 +84,7 @@ fn main() {
         }
 
         if !current.is_empty() {
-            token.push(current.trim().to_string());
+            token.push(current.trim_end().to_string());
         }
 
         parser(token[0].as_str(), &token[1..]); 
