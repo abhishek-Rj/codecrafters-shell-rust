@@ -67,15 +67,15 @@ fn main() {
                         is_double_quotes = !is_double_quotes;
                     }
                 }
-                ' '  => {
-                    if is_backslash {
-                        current.push(i);
-                        is_backslash = !is_backslash;
-                    } else if !is_single_quotes && !is_double_quotes && !is_backslash {
-                        if !current.is_empty() {
-                            token.push(std::mem::take(&mut current));
-                        }
+                ' ' if !is_single_quotes && !is_double_quotes => {
+                    if !current.is_empty() {
+                        token.push(std::mem::take(&mut current));
                     }
+                }
+                ' ' if is_backslash => {
+                    current.push(i);
+                    is_backslash = !is_backslash;
+
                 }
                 _ => {
                     current.push(i);     
@@ -132,6 +132,7 @@ fn parser(command: &str, res_args: &[String]) {
                 ()
             },
             Commands::Builtin(BuiltInCommands::Echo) => {
+                println!("{:?}", res_args);
                 for i in 0..res_args.len() {
                     print!("{}", res_args[i]);
                     if i != res_args.len() - 1 {
