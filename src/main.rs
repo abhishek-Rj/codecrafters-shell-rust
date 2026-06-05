@@ -44,8 +44,9 @@ fn main() {
                 '\'' => {
                     if is_double_quotes {
                         current.push(i);
+                    } else {
+                        is_single_quotes = !is_single_quotes;
                     }
-                    is_single_quotes = !is_single_quotes;
                 }
                 '\"' => {
                     is_single_quotes = !is_single_quotes;
