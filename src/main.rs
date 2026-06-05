@@ -107,7 +107,6 @@ fn parser(command: &str, res_args: &[String]) {
                 ()
             },
             Commands::Builtin(BuiltInCommands::Echo) => {
-                println!("{:?}", res_args);
                 for i in 0..res_args.len() {
                     print!("{}", res_args[i]);
                     if i != res_args.len() - 1 {
