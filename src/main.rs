@@ -37,13 +37,17 @@ fn main() {
         let mut current: String =  String::new();
         let mut token: Vec<String> = Vec::new();
         let mut is_single_quotes: bool = false;
+        let mut is_double_quotes: bool = false;
 
         for i in command.chars() {
             match i {
                 '\'' => {
                     is_single_quotes = !is_single_quotes;
                 }
-                ' ' if !is_single_quotes => {
+                '\"' => {
+                    is_double_quotes = !is_double_quotes;
+                }
+                ' ' if !is_single_quotes && !is_double_quotes => {
                     if !current.is_empty() {
                         token.push(std::mem::take(&mut current));
                     }
@@ -100,6 +104,7 @@ fn parser(command: &str, res_args: &[String]) {
                 ()
             },
             Commands::Builtin(BuiltInCommands::Echo) => {
+                //println!("{:?}", res_args);
                 for i in 0..res_args.len() {
                     print!("{}", res_args[i]);
                     if i != res_args.len() - 1 {
@@ -140,7 +145,6 @@ fn parser(command: &str, res_args: &[String]) {
                     }
                 }
             },
-
             //#[allow(unused_mut)]
             Commands::Builtin(BuiltInCommands::CurrentDirectory) => {
                 let home = env::var("HOME").unwrap();               
