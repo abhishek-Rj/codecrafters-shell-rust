@@ -42,6 +42,9 @@ fn main() {
         for i in command.chars() {
             match i {
                 '\'' => {
+                    if is_double_quotes {
+                        current.push(i);
+                    }
                     is_single_quotes = !is_single_quotes;
                 }
                 '\"' => {
