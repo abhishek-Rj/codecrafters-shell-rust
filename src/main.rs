@@ -44,10 +44,12 @@ fn main() {
         for i in command.chars() {
             match i {
                 '\\' => {
-                    if is_backslash || include_backslash {
+                    if is_backslash {
                         current.push(i);                        
                         is_backslash = !is_backslash;
-                    } else {
+                    } else if include_backslash {
+                        current.push(i);
+                    } else{
                         is_backslash = !is_backslash;
                     }
                 }
@@ -134,6 +136,7 @@ fn parser(command: &str, res_args: &[String]) {
                 ()
             },
             Commands::Builtin(BuiltInCommands::Echo) => {
+                println!("{res_args:?}");
                 for i in 0..res_args.len() {
                     print!("{}", res_args[i]);
                     if i != res_args.len() - 1 {
@@ -195,7 +198,6 @@ fn parser(command: &str, res_args: &[String]) {
                 } else {
                     change_current_directory(&res_args[0]);
                 }
-                
             },
             Commands::External(_) => {
                 let output = Command::new(command).args(&res_args[..]).output().expect("failed to execute program");
