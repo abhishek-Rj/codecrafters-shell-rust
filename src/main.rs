@@ -39,7 +39,6 @@ fn main() {
         let mut is_single_quotes: bool = false;
         let mut is_double_quotes: bool = false;
         let mut is_backslash: bool = false;
-        let mut include_backslash = false;
 
         for i in command.chars() {
             match i {
@@ -47,29 +46,30 @@ fn main() {
                     if is_backslash {
                         current.push(i);                        
                         is_backslash = !is_backslash;
-                    } else if include_backslash {
+                    } else if is_single_quotes {
                         current.push(i);
-                    } else{
+                    } else {
                         is_backslash = !is_backslash;
                     }
                 }
                 '\'' => {
-                    if is_double_quotes || is_backslash {
+                    if is_backslash {
                         current.push(i);
                         is_backslash = !is_backslash;
+                    } else if is_double_quotes{
+                        current.push(i);
                     } else {
                         is_single_quotes = !is_single_quotes;
-                        include_backslash = !include_backslash;
                     }
                 }
                 '\"' => {
                     if is_backslash {
                         current.push(i);
                         is_backslash = !is_backslash;
+                    } else if is_single_quotes {
+                        current.push(i);
                     } else {
-                        is_single_quotes = !is_single_quotes;
                         is_double_quotes = !is_double_quotes;
-                        include_backslash = !include_backslash;
                     }
                 }
                 ' ' if !is_single_quotes && !is_double_quotes && !is_backslash => {
