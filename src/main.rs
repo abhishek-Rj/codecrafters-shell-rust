@@ -39,11 +39,12 @@ fn main() {
         let mut is_single_quotes: bool = false;
         let mut is_double_quotes: bool = false;
         let mut is_backslash: bool = false;
+        let mut include_backslash = false;
 
         for i in command.chars() {
             match i {
                 '\\' => {
-                    if is_backslash {
+                    if is_backslash || include_backslash {
                         current.push(i);                        
                         is_backslash = !is_backslash;
                     } else {
@@ -56,6 +57,7 @@ fn main() {
                         is_backslash = !is_backslash;
                     } else {
                         is_single_quotes = !is_single_quotes;
+                        include_backslash = !include_backslash;
                     }
                 }
                 '\"' => {
@@ -65,6 +67,7 @@ fn main() {
                     } else {
                         is_single_quotes = !is_single_quotes;
                         is_double_quotes = !is_double_quotes;
+                        include_backslash = !include_backslash;
                     }
                 }
                 ' ' if !is_single_quotes && !is_double_quotes && !is_backslash => {
