@@ -5,6 +5,8 @@ use std::process::Command;
 use std::{env, path::Path};
 use std::os::unix::fs::PermissionsExt;
 
+use crate::Operator::Redirect;
+
 enum BuiltInCommands {
     Exit,
     Echo,
@@ -16,6 +18,17 @@ enum BuiltInCommands {
 enum Commands {
     Builtin(BuiltInCommands),
     External(String) 
+}
+
+enum RedirectOperator {
+    Stdout(String),
+    Stderr(String),
+}
+
+enum Operator {
+    Redirect(RedirectOperator),
+    Pipe,
+    None
 }
 
 fn main() {
@@ -94,7 +107,13 @@ fn main() {
             token.push(current.trim_end().to_string());
         }
 
-        parser(token[0].as_str(), &token[1..]); 
+        let (stdout, stderr) = parser(token[0].as_str(), &token[1..]); 
+        if let Some(Operator::Redirect(RedirectOperator::Stdout(buf))) = stdout {
+            print!("{buf}");
+        }
+        if let Some(Operator::Redirect(RedirectOperator::Stderr(buf))) = stderr {
+            eprintln!("{buf}")
+        }
     }
 }
 
@@ -129,61 +148,64 @@ fn lexer(command: &str) -> Result<Commands, String> {
     }
 }
 
-fn parser(command: &str, res_args: &[String]) {
+fn parser(command: &str, res_args: &[String]) -> (Option<Operator>, Option<Operator>) {
+    let mut stdout_buffer = String::new();
+    let mut stderr_buffer = String::new();
     if let Ok(cmmnd)= lexer(command) {
         match cmmnd {
             Commands::Builtin(BuiltInCommands::Exit) => {
-                ()
+                (None, None)
             },
+
             Commands::Builtin(BuiltInCommands::Echo) => {
                 //println!("{res_args:?}");
                 for i in 0..res_args.len() {
-                    print!("{}", res_args[i]);
+                    stdout_buffer.push_str(res_args[i].as_str());
                     if i != res_args.len() - 1 {
-                        print!(" ");
+                       stdout_buffer.push(' ');
                     }
                 }
-                println!("");
-                io::stdout().flush().unwrap();
+                stdout_buffer.push_str("\n");
+                (Some(Operator::Redirect(RedirectOperator::Stdout(stdout_buffer))), None)
             },
+            
             Commands::Builtin(BuiltInCommands::Type) => {
                 if res_args.len() == 1 {
                     if let Ok(cmd) = lexer(res_args[0].as_str()) {
                         match cmd {
                             Commands::Builtin(_) => {
-                                println!("{} is a shell builtin", res_args[0]);
-                                return;
+                                (Some(Operator::Redirect(RedirectOperator::Stdout(format!("{} is a shell builtin\n", res_args[0])))), None)
                             }
                             Commands::External(path) => {
-                                println!("{} is {}", res_args[0], path);
-                                return;
+                                (Some(Operator::Redirect(RedirectOperator::Stdout(format!("{} is {}\n", res_args[0], path)))), None)
                             }
                         }
                     } else {
-                        eprintln!("{}: not found", res_args[0]);
-                        return;
+                        (None, Some(Operator::Redirect(RedirectOperator::Stderr(format!("{}: not found", res_args[0])))))
                     } 
+                } else {
+                    (None, Some(Operator::Redirect(RedirectOperator::Stderr(format!("More than one argument for type command not allowd")))))
                 }
             },
+            
             Commands::Builtin(BuiltInCommands::Pwd) => {
                 match env::current_dir() {
                     Ok(path) => {
-                        println!("{}", path.display());
-                        return;
+                        (Some(Operator::Redirect(RedirectOperator::Stdout(format!("{}\n", path.display())))), None)
                     },
                     Err(e) => {
-                        eprintln!("Error getting current directory! {}", e.to_string());
-                        return
+                        (None, Some(Operator::Redirect(RedirectOperator::Stderr(format!("Error getting current directory! {}\n", e.to_string())))))
                     }
                 }
             },
-            //#[allow(unused_mut)]
+
             Commands::Builtin(BuiltInCommands::CurrentDirectory) => {
                 let home = env::var("HOME").unwrap();               
                 let mut new_current_dir: String = String::new();
                 if res_args[0] == "~" {
                     new_current_dir = home;
                     change_current_directory(&new_current_dir);
+                    (None, None)
                 } else if res_args[0] == ".." {
                     let current_dir = env::current_dir().unwrap().display().to_string();
                     let vec: Vec<String> = current_dir.split("/").map(|s| s.to_string()).collect();
@@ -193,21 +215,25 @@ fn parser(command: &str, res_args: &[String]) {
                         new_current_dir.push('/');
                     }
                     change_current_directory(&new_current_dir);
+                    (None, None)
                 } else if res_args[0] == "." {
-                    ()
+                    (None, None)
                 } else {
                     change_current_directory(&res_args[0]);
+                    (None, None)
                 }
             },
+            
             Commands::External(_) => {
                 let output = Command::new(command).args(&res_args[..]).output().expect("failed to execute program");
                 let stdout = output.stdout;
-                print!("{}", String::from_utf8_lossy(&stdout));
-                io::stdout().flush().unwrap();
+                let stderr = output.stderr;
+                (Some(Operator::Redirect(RedirectOperator::Stdout(format!("{}", String::from_utf8_lossy(&stdout))))), Some(Operator::Redirect(RedirectOperator::Stderr(format!("{}", String::from_utf8_lossy(&stderr))))))
             }
         }
     } else {
-        eprintln!("{}: command not found", command)
+        (None, None)
+        //eprintln!("{}: command not found", command)
     }
 }
 
