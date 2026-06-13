@@ -1,12 +1,10 @@
 #[allow(unused_imports)]
 use std::fmt::format;
+use std::fs;
 use std::io::{self, Write};
 use std::process::Command;
 use std::{env, path::Path};
 use std::os::unix::fs::PermissionsExt;
-
-use crate::Operator::Redirect;
-
 enum BuiltInCommands {
     Exit,
     Echo,
@@ -25,10 +23,39 @@ enum RedirectOperator {
     Stderr(String),
 }
 
+#[allow(unused)]
 enum Operator {
     Redirect(RedirectOperator),
     Pipe,
     None
+}
+
+const OPERATOR_SYMBOLS: [&str; 3] = ["1>", ">", "|"];
+
+fn if_operator(token: &[String]) -> bool {
+    for i in OPERATOR_SYMBOLS {
+        if token.contains(&i.to_string()) {
+            return true
+        }
+    }
+    false
+}
+
+fn operator(operator: &str, args: &[String], input: String) {
+    match operator {
+        "1>" | ">" => {
+            let file_name = &args[0];
+            if let Ok(_) = fs::write(file_name, input) {
+                return
+            } else {
+                eprintln!("Unable to write stdout in corresponding file");
+            }
+        },
+
+        _ => {
+            ()
+        }
+    }
 }
 
 fn main() {
@@ -107,13 +134,18 @@ fn main() {
             token.push(current.trim_end().to_string());
         }
 
-        let (stdout, stderr) = parser(token[0].as_str(), &token[1..]); 
-        if let Some(Operator::Redirect(RedirectOperator::Stdout(buf))) = stdout {
-            print!("{buf}");
+        if if_operator(&token[1..]) {
+            
+        } else {
+            let (stdout, stderr) = parser(token[0].as_str(), &token[1..]); 
+            if let Some(Operator::Redirect(RedirectOperator::Stdout(buf))) = stdout {
+                print!("{buf}");
+            }
+            if let Some(Operator::Redirect(RedirectOperator::Stderr(buf))) = stderr {
+                eprintln!("{buf}")
+            }
         }
-        if let Some(Operator::Redirect(RedirectOperator::Stderr(buf))) = stderr {
-            eprintln!("{buf}")
-        }
+
     }
 }
 
@@ -150,7 +182,6 @@ fn lexer(command: &str) -> Result<Commands, String> {
 
 fn parser(command: &str, res_args: &[String]) -> (Option<Operator>, Option<Operator>) {
     let mut stdout_buffer = String::new();
-    let mut stderr_buffer = String::new();
     if let Ok(cmmnd)= lexer(command) {
         match cmmnd {
             Commands::Builtin(BuiltInCommands::Exit) => {
