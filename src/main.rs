@@ -32,13 +32,14 @@ enum Operator {
 
 const OPERATOR_SYMBOLS: [&str; 3] = ["1>", ">", "|"];
 
-fn if_operator(token: &[String]) -> bool {
+fn if_operator(token: &[String]) -> (bool, Option<&str>, Option<usize>) {
     for i in OPERATOR_SYMBOLS {
         if token.contains(&i.to_string()) {
-            return true
+            let index = token.iter().position(|x| x == &i.to_string()).unwrap();
+            return (true, Some(i), Some(index)) 
         }
     }
-    false
+    (false, None, None)
 }
 
 fn operator(operator: &str, args: &[String], input: String) {
@@ -134,8 +135,16 @@ fn main() {
             token.push(current.trim_end().to_string());
         }
 
-        if if_operator(&token[1..]) {
-            
+        let (operator_bool, in_use_operator, index_position) = if_operator(&token[1..]);
+        
+        if operator_bool {
+            let in_use_operator = in_use_operator.unwrap();
+            let index_position = index_position.unwrap();
+            let next_args = &token[2 + index_position..];
+            let (stdout, _) = parser(token[0].as_str(), &token[1..=index_position]); 
+            if let Some(Operator::Redirect(RedirectOperator::Stdout(buf))) = stdout {
+                operator(in_use_operator, next_args, buf);
+            }
         } else {
             let (stdout, stderr) = parser(token[0].as_str(), &token[1..]); 
             if let Some(Operator::Redirect(RedirectOperator::Stdout(buf))) = stdout {
