@@ -144,9 +144,14 @@ fn main() {
             let in_use_operator = in_use_operator.unwrap();
             let index_position = index_position.unwrap();
             let next_args = &token[2 + index_position..];
-            let (stdout, _) = parser(token[0].as_str(), &token[1..=index_position]); 
+            let (stdout, stderr) = parser(token[0].as_str(), &token[1..=index_position]); 
             if let Some(Operator::Redirect(RedirectOperator::Stdout(buf))) = stdout {
                 operator(in_use_operator, next_args, buf);
+            }
+            if let Some(Operator::Redirect(RedirectOperator::Stderr(buf))) = stderr {
+                if !buf.is_empty() {
+                    eprint!("{buf}");
+                }
             }
         } else {
             let (stdout, stderr) = parser(token[0].as_str(), &token[1..]); 
@@ -155,7 +160,7 @@ fn main() {
             }
             if let Some(Operator::Redirect(RedirectOperator::Stderr(buf))) = stderr {
                 if !buf.is_empty() {
-                    eprint!("{buf}\n");
+                    eprint!("{buf}");
                 }
             }
         }
