@@ -149,7 +149,9 @@ fn main() {
         } else {
             let (stdout, stderr) = parser(token[0].as_str(), &token[1..]); 
             if let Some(CommandOutput::Stdout(buf)) = stdout {
-                print!("{buf}");
+                if !buf.is_empty() {
+                    print!("{buf}");
+                }
             }
             if let Some(CommandOutput::Stderr(buf)) = stderr {
                 if !buf.is_empty() {
@@ -272,7 +274,6 @@ fn parser(command: &str, res_args: &[String]) -> (Option<CommandOutput>, Option<
                 let output = Command::new(command).args(&res_args[..]).output().expect("failed to execute program");
                 let stdout = output.stdout;
                 let stderr = output.stderr;
-                println!("{}", String::from_utf8_lossy(&stderr));
                 (Some(CommandOutput::Stdout(format!("{}", String::from_utf8_lossy(&stdout)))), Some(CommandOutput::Stderr(format!("{}", String::from_utf8_lossy(&stderr)))))
             }
         }
