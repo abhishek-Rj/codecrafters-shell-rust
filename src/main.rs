@@ -150,7 +150,7 @@ fn main() {
             }
             if let Some(Operator::Redirect(RedirectOperator::Stderr(buf))) = stderr {
                 if !buf.is_empty() {
-                    eprint!("{buf}\n");
+                    eprint!("{buf}");
                 }
             }
         } else {
@@ -232,10 +232,10 @@ fn parser(command: &str, res_args: &[String]) -> (Option<Operator>, Option<Opera
                             }
                         }
                     } else {
-                        (None, Some(Operator::Redirect(RedirectOperator::Stderr(format!("{}: not found", res_args[0])))))
+                        (None, Some(Operator::Redirect(RedirectOperator::Stderr(format!("{}: not found\n", res_args[0])))))
                     } 
                 } else {
-                    (None, Some(Operator::Redirect(RedirectOperator::Stderr(format!("More than one argument for type command not allowd")))))
+                    (None, Some(Operator::Redirect(RedirectOperator::Stderr(format!("More than one argument for type command not allowd\n")))))
                 }
             },
             
