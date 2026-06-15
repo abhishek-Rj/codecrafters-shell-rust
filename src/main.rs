@@ -45,12 +45,15 @@ fn if_operator(token: &[String]) -> (bool, Option<&str>, Option<usize>) {
 fn operator(operator: &str, args: &[String], input: String) {
     match operator {
         "1>" | ">" => {
-            let file_name = &args[0];
-            if let Ok(_) = fs::write(file_name, input) {
-                return
-            } else {
-                eprintln!("Unable to write stdout in corresponding file");
-            }
+            let path = &args[0];
+            let parent = Path::new(path).parent().unwrap();
+            fs::create_dir(parent).unwrap();
+            match fs::write(path, input) {
+                Ok(_) => {()}
+                Err(error) => {
+                    eprintln!("{error}, Unable to write stdout in corresponding file");
+                }
+            } 
         },
 
         _ => {
@@ -151,7 +154,7 @@ fn main() {
                 print!("{buf}");
             }
             if let Some(Operator::Redirect(RedirectOperator::Stderr(buf))) = stderr {
-                eprintln!("{buf}")
+                eprint!("{buf}\n")
             }
         }
 
