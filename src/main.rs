@@ -150,7 +150,7 @@ fn main() {
             }
             if let Some(Operator::Redirect(RedirectOperator::Stderr(buf))) = stderr {
                 if !buf.is_empty() {
-                    eprint!("{buf}");
+                    eprint!("{buf}\n");
                 }
             }
         } else {
