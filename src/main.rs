@@ -47,7 +47,7 @@ fn operator(operator: &str, args: &[String], input: String) {
         "1>" | ">" => {
             let path = &args[0];
             let parent = Path::new(path).parent().unwrap();
-            fs::create_dir(parent).unwrap();
+            fs::create_dir_all(parent).unwrap();
             match fs::write(path, input) {
                 Ok(_) => {()}
                 Err(error) => {
