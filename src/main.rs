@@ -18,16 +18,9 @@ enum Commands {
     External(String) 
 }
 
-enum RedirectOperator {
+enum CommandOutput {
     Stdout(String),
     Stderr(String),
-}
-
-#[allow(unused)]
-enum Operator {
-    Redirect(RedirectOperator),
-    Pipe,
-    None
 }
 
 const OPERATOR_SYMBOLS: [&str; 3] = ["1>", ">", "|"];
@@ -145,20 +138,20 @@ fn main() {
             let index_position = index_position.unwrap();
             let next_args = &token[2 + index_position..];
             let (stdout, stderr) = parser(token[0].as_str(), &token[1..=index_position]); 
-            if let Some(Operator::Redirect(RedirectOperator::Stdout(buf))) = stdout {
+            if let Some(CommandOutput::Stdout(buf)) = stdout {
                 operator(in_use_operator, next_args, buf);
             }
-            if let Some(Operator::Redirect(RedirectOperator::Stderr(buf))) = stderr {
+            if let Some(CommandOutput::Stderr(buf)) = stderr {
                 if !buf.is_empty() {
                     eprint!("{buf}");
                 }
             }
         } else {
             let (stdout, stderr) = parser(token[0].as_str(), &token[1..]); 
-            if let Some(Operator::Redirect(RedirectOperator::Stdout(buf))) = stdout {
+            if let Some(CommandOutput::Stdout(buf)) = stdout {
                 print!("{buf}");
             }
-            if let Some(Operator::Redirect(RedirectOperator::Stderr(buf))) = stderr {
+            if let Some(CommandOutput::Stderr(buf)) = stderr {
                 if !buf.is_empty() {
                     eprint!("{buf}");
                 }
@@ -199,7 +192,7 @@ fn lexer(command: &str) -> Result<Commands, String> {
     }
 }
 
-fn parser(command: &str, res_args: &[String]) -> (Option<Operator>, Option<Operator>) {
+fn parser(command: &str, res_args: &[String]) -> (Option<CommandOutput>, Option<CommandOutput>) {
     let mut stdout_buffer = String::new();
     if let Ok(cmmnd)= lexer(command) {
         match cmmnd {
@@ -216,7 +209,7 @@ fn parser(command: &str, res_args: &[String]) -> (Option<Operator>, Option<Opera
                     }
                 }
                 stdout_buffer.push_str("\n");
-                (Some(Operator::Redirect(RedirectOperator::Stdout(stdout_buffer))), None)
+                (Some(CommandOutput::Stdout(stdout_buffer)), None)
             },
             
             Commands::Builtin(BuiltInCommands::Type) => {
@@ -225,27 +218,27 @@ fn parser(command: &str, res_args: &[String]) -> (Option<Operator>, Option<Opera
                     if let Ok(cmd) = lexer(res_args[0].as_str()) {
                         match cmd {
                             Commands::Builtin(_) => {
-                                (Some(Operator::Redirect(RedirectOperator::Stdout(format!("{} is a shell builtin\n", res_args[0])))), None)
+                                (Some(CommandOutput::Stdout(format!("{} is a shell builtin\n", res_args[0]))), None)
                             }
                             Commands::External(path) => {
-                                (Some(Operator::Redirect(RedirectOperator::Stdout(format!("{} is {}\n", res_args[0], path)))), None)
+                                (Some(CommandOutput::Stdout(format!("{} is {}\n", res_args[0], path))), None)
                             }
                         }
                     } else {
-                        (None, Some(Operator::Redirect(RedirectOperator::Stderr(format!("{}: not found\n", res_args[0])))))
+                        (None, Some(CommandOutput::Stderr(format!("{}: not found\n", res_args[0]))))
                     } 
                 } else {
-                    (None, Some(Operator::Redirect(RedirectOperator::Stderr(format!("More than one argument for type command not allowd\n")))))
+                    (None, Some(CommandOutput::Stderr(format!("More than one argument for type command not allowd\n"))))
                 }
             },
             
             Commands::Builtin(BuiltInCommands::Pwd) => {
                 match env::current_dir() {
                     Ok(path) => {
-                        (Some(Operator::Redirect(RedirectOperator::Stdout(format!("{}\n", path.display())))), None)
+                        (Some(CommandOutput::Stdout(format!("{}\n", path.display()))), None)
                     },
                     Err(e) => {
-                        (None, Some(Operator::Redirect(RedirectOperator::Stderr(format!("Error getting current directory! {}\n", e.to_string())))))
+                        (None, Some(CommandOutput::Stderr(format!("Error getting current directory! {}\n", e.to_string()))))
                     }
                 }
             },
@@ -279,12 +272,12 @@ fn parser(command: &str, res_args: &[String]) -> (Option<Operator>, Option<Opera
                 let output = Command::new(command).args(&res_args[..]).output().expect("failed to execute program");
                 let stdout = output.stdout;
                 let stderr = output.stderr;
-                (Some(Operator::Redirect(RedirectOperator::Stdout(format!("{}", String::from_utf8_lossy(&stdout))))), Some(Operator::Redirect(RedirectOperator::Stderr(format!("{}", String::from_utf8_lossy(&stderr))))))
+                println!("{}", String::from_utf8_lossy(&stderr));
+                (Some(CommandOutput::Stdout(format!("{}", String::from_utf8_lossy(&stdout)))), Some(CommandOutput::Stderr(format!("{}", String::from_utf8_lossy(&stderr)))))
             }
         }
     } else {
-        (None, None)
-        //eprintln!("{}: command not found", command)
+        (None, Some(CommandOutput::Stderr(format!("{}: command not found\n", command))))
     }
 }
 
