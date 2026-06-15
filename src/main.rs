@@ -154,7 +154,9 @@ fn main() {
                 print!("{buf}");
             }
             if let Some(Operator::Redirect(RedirectOperator::Stderr(buf))) = stderr {
-                eprint!("{buf}\n")
+                if !buf.is_empty() {
+                    eprint!("{buf}\n");
+                }
             }
         }
 
@@ -213,6 +215,7 @@ fn parser(command: &str, res_args: &[String]) -> (Option<Operator>, Option<Opera
             },
             
             Commands::Builtin(BuiltInCommands::Type) => {
+                //println!("{res_args:?}");
                 if res_args.len() == 1 {
                     if let Ok(cmd) = lexer(res_args[0].as_str()) {
                         match cmd {
