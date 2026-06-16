@@ -23,7 +23,7 @@ enum CommandOutput {
     Stderr(String),
 }
 
-const OPERATOR_SYMBOLS: [&str; 6] = ["1>", ">", "2>", ">>", "2>>", "|"];
+const OPERATOR_SYMBOLS: [&str; 7] = ["1>", ">", "2>", ">>", "1>>", "2>>", "|"];
 
 fn if_operator(token: &[String]) -> (bool, Option<&str>, Option<usize>) {
     for i in OPERATOR_SYMBOLS {
@@ -49,7 +49,7 @@ fn operator(operator: &str, args: &[String], input: String) {
             } 
         },
 
-        ">>" | "2>>" => {
+        ">>" | "1>>" | "2>>" => {
             let path = &args[0];
             let mut file = fs::OpenOptions::new().append(true).create(true).open(path).unwrap();
             match file.write_all(input.as_bytes()) {
@@ -149,7 +149,7 @@ fn main() {
             let index_position = index_position.unwrap();
             let next_args = &token[2 + index_position..];
             let (stdout, stderr) = parser(token[0].as_str(), &token[1..=index_position]); 
-            if in_use_operator == ">" || in_use_operator == "1>" || in_use_operator == ">>" {
+            if in_use_operator == ">" || in_use_operator == "1>" || in_use_operator == ">>" || in_use_operator == "1>>" {
                 let buf = match stdout {
                     Some(CommandOutput::Stdout(stdout)) => stdout,
                     None => String::new(),
