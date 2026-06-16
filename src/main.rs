@@ -23,7 +23,7 @@ enum CommandOutput {
     Stderr(String),
 }
 
-const OPERATOR_SYMBOLS: [&str; 3] = ["1>", ">", "|"];
+const OPERATOR_SYMBOLS: [&str; 4] = ["1>", ">", "2>", "|"];
 
 fn if_operator(token: &[String]) -> (bool, Option<&str>, Option<usize>) {
     for i in OPERATOR_SYMBOLS {
@@ -37,7 +37,7 @@ fn if_operator(token: &[String]) -> (bool, Option<&str>, Option<usize>) {
 
 fn operator(operator: &str, args: &[String], input: String) {
     match operator {
-        "1>" | ">" => {
+        "1>" | ">" | "2>" => {
             let path = &args[0];
             let parent = Path::new(path).parent().unwrap();
             fs::create_dir_all(parent).unwrap();
@@ -138,12 +138,23 @@ fn main() {
             let index_position = index_position.unwrap();
             let next_args = &token[2 + index_position..];
             let (stdout, stderr) = parser(token[0].as_str(), &token[1..=index_position]); 
-            if let Some(CommandOutput::Stdout(buf)) = stdout {
-                operator(in_use_operator, next_args, buf);
-            }
-            if let Some(CommandOutput::Stderr(buf)) = stderr {
-                if !buf.is_empty() {
-                    eprint!("{buf}");
+            if in_use_operator == ">" || in_use_operator == "1>" {
+                if let Some(CommandOutput::Stdout(buf)) = stdout {
+                    operator(in_use_operator, next_args, buf);
+                }
+                if let Some(CommandOutput::Stderr(buf)) = stderr {
+                    if !buf.is_empty() {
+                        eprint!("{buf}");
+                    }
+                }
+            } else if in_use_operator == "2>" {
+                if let Some(CommandOutput::Stderr(buf)) = stderr {
+                    operator(in_use_operator, next_args, buf);
+                }
+                if let Some(CommandOutput::Stdout(buf)) = stdout {
+                    if !buf.is_empty() {
+                        eprint!("{buf}");
+                    }
                 }
             }
         } else {
