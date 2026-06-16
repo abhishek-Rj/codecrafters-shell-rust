@@ -139,27 +139,29 @@ fn main() {
             let next_args = &token[2 + index_position..];
             let (stdout, stderr) = parser(token[0].as_str(), &token[1..=index_position]); 
             if in_use_operator == ">" || in_use_operator == "1>" {
-                if let Some(CommandOutput::Stdout(mut buf)) = stdout {
-                    if buf.is_empty() {
-                        buf = String::new();
-                        operator(in_use_operator, next_args, buf);
-                    }
-                }
+                let buf = match stdout {
+                    Some(CommandOutput::Stdout(stdout)) => stdout,
+                    None => String::new(),
+                    _ => unreachable!()
+                };
+                operator(in_use_operator, next_args, buf);
                 if let Some(CommandOutput::Stderr(buf)) = stderr {
                     if !buf.is_empty() {
                         eprint!("{buf}");
                     }
                 }
             } else if in_use_operator == "2>" {
-                if let Some(CommandOutput::Stdout(mut buf)) = stdout {
-                    if buf.is_empty() {
-                        buf = String::new();
+                if let Some(CommandOutput::Stdout(buf)) = stdout {
+                    if !buf.is_empty() {
                         eprint!("{buf}");
                     }
                 }
-                if let Some(CommandOutput::Stderr(buf)) = stderr {
-                    operator(in_use_operator, next_args, buf);
-                }
+                let buf = match stderr {
+                    Some(CommandOutput::Stderr(stderr)) => stderr,
+                    None => String::new(),
+                    _ => unreachable!()
+                };
+                operator(in_use_operator, next_args, buf);
             }
         } else {
             let (stdout, stderr) = parser(token[0].as_str(), &token[1..]); 
