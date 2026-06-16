@@ -139,8 +139,11 @@ fn main() {
             let next_args = &token[2 + index_position..];
             let (stdout, stderr) = parser(token[0].as_str(), &token[1..=index_position]); 
             if in_use_operator == ">" || in_use_operator == "1>" {
-                if let Some(CommandOutput::Stdout(buf)) = stdout {
-                    operator(in_use_operator, next_args, buf);
+                if let Some(CommandOutput::Stdout(mut buf)) = stdout {
+                    if buf.is_empty() {
+                        buf = String::new();
+                        operator(in_use_operator, next_args, buf);
+                    }
                 }
                 if let Some(CommandOutput::Stderr(buf)) = stderr {
                     if !buf.is_empty() {
@@ -148,8 +151,9 @@ fn main() {
                     }
                 }
             } else if in_use_operator == "2>" {
-                if let Some(CommandOutput::Stdout(buf)) = stdout {
-                    if !buf.is_empty() {
+                if let Some(CommandOutput::Stdout(mut buf)) = stdout {
+                    if buf.is_empty() {
+                        buf = String::new();
                         eprint!("{buf}");
                     }
                 }
