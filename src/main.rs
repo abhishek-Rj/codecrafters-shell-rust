@@ -148,13 +148,13 @@ fn main() {
                     }
                 }
             } else if in_use_operator == "2>" {
-                if let Some(CommandOutput::Stderr(buf)) = stderr {
-                    operator(in_use_operator, next_args, buf);
-                }
                 if let Some(CommandOutput::Stdout(buf)) = stdout {
                     if !buf.is_empty() {
                         eprint!("{buf}");
                     }
+                }
+                if let Some(CommandOutput::Stderr(buf)) = stderr {
+                    operator(in_use_operator, next_args, buf);
                 }
             }
         } else {
