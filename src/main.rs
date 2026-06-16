@@ -23,7 +23,7 @@ enum CommandOutput {
     Stderr(String),
 }
 
-const OPERATOR_SYMBOLS: [&str; 4] = ["1>", ">", "2>", "|"];
+const OPERATOR_SYMBOLS: [&str; 6] = ["1>", ">", "2>", ">>", "2>>", "|"];
 
 fn if_operator(token: &[String]) -> (bool, Option<&str>, Option<usize>) {
     for i in OPERATOR_SYMBOLS {
@@ -47,6 +47,17 @@ fn operator(operator: &str, args: &[String], input: String) {
                     eprintln!("{error}, Unable to write stdout in corresponding file");
                 }
             } 
+        },
+
+        ">>" | "2>>" => {
+            let path = &args[0];
+            let mut file = fs::OpenOptions::new().append(true).create(true).open(path).unwrap();
+            match file.write_all(input.as_bytes()) {
+                Ok(_) => {()},
+                Err(error) => {
+                    eprintln!("{error}, cannot append to the file");
+                }
+            }
         },
 
         _ => {
@@ -138,7 +149,7 @@ fn main() {
             let index_position = index_position.unwrap();
             let next_args = &token[2 + index_position..];
             let (stdout, stderr) = parser(token[0].as_str(), &token[1..=index_position]); 
-            if in_use_operator == ">" || in_use_operator == "1>" {
+            if in_use_operator == ">" || in_use_operator == "1>" || in_use_operator == ">>" {
                 let buf = match stdout {
                     Some(CommandOutput::Stdout(stdout)) => stdout,
                     None => String::new(),
@@ -150,7 +161,7 @@ fn main() {
                         eprint!("{buf}");
                     }
                 }
-            } else if in_use_operator == "2>" {
+            } else if in_use_operator == "2>" || in_use_operator == "2>>" {
                 if let Some(CommandOutput::Stdout(buf)) = stdout {
                     if !buf.is_empty() {
                         eprint!("{buf}");
@@ -162,7 +173,7 @@ fn main() {
                     _ => unreachable!()
                 };
                 operator(in_use_operator, next_args, buf);
-            }
+            }  
         } else {
             let (stdout, stderr) = parser(token[0].as_str(), &token[1..]); 
             if let Some(CommandOutput::Stdout(buf)) = stdout {
