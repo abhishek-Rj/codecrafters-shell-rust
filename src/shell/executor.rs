@@ -1,0 +1,143 @@
+#[allow(unused_imports)]
+use std::fmt::format;
+use std::process::Command;
+use std::{env, path::Path};
+use std::os::unix::fs::PermissionsExt;
+
+use super::command::{BuiltInCommands, CommandOutput, Commands};
+
+fn lexer(command: &str) -> Result<Commands, String> {
+    if command == "echo" {
+        Ok(Commands::Builtin(BuiltInCommands::Echo))
+    } else if command == "type" {
+        Ok(Commands::Builtin(BuiltInCommands::Type))
+    } else if command == "exit" {
+        Ok(Commands::Builtin(BuiltInCommands::Exit))
+    } else if command == "pwd" {
+        Ok(Commands::Builtin(BuiltInCommands::Pwd))
+    } else if command == "cd" {
+        Ok(Commands::Builtin(BuiltInCommands::CurrentDirectory))
+    } else {
+        match env::var("PATH") {
+            Ok(path) => {
+                let directories: Vec<String> = path.split(":").map(|s| s.to_string()).collect();
+                for dir in directories {
+                    let path = format!("{}/{}", dir, command);
+
+                    if if_file_exist_and_executable(&path) {
+                        return Ok(Commands::External(path));
+                    }
+                }
+                return Err("Coudn't parse the keyword".into());
+            },
+            Err(_) => {
+                return Err("Coudn't parse the keyword".into());
+            },
+        }
+    }
+}
+
+pub fn parser(command: &str, res_args: &[String]) -> (Option<CommandOutput>, Option<CommandOutput>) {
+    let mut stdout_buffer = String::new();
+    if let Ok(cmmnd)= lexer(command) {
+        match cmmnd {
+            Commands::Builtin(BuiltInCommands::Exit) => {
+                (None, None)
+            },
+
+            Commands::Builtin(BuiltInCommands::Echo) => {
+                //println!("{res_args:?}");
+                for i in 0..res_args.len() {
+                    stdout_buffer.push_str(res_args[i].as_str());
+                    if i != res_args.len() - 1 {
+                       stdout_buffer.push(' ');
+                    }
+                }
+                stdout_buffer.push_str("\n");
+                (Some(CommandOutput::Stdout(stdout_buffer)), None)
+            },
+            
+            Commands::Builtin(BuiltInCommands::Type) => {
+                //println!("{res_args:?}");
+                if res_args.len() == 1 {
+                    if let Ok(cmd) = lexer(res_args[0].as_str()) {
+                        match cmd {
+                            Commands::Builtin(_) => {
+                                (Some(CommandOutput::Stdout(format!("{} is a shell builtin\n", res_args[0]))), None)
+                            }
+                            Commands::External(path) => {
+                                (Some(CommandOutput::Stdout(format!("{} is {}\n", res_args[0], path))), None)
+                            }
+                        }
+                    } else {
+                        (None, Some(CommandOutput::Stderr(format!("{}: not found\n", res_args[0]))))
+                    } 
+                } else {
+                    (None, Some(CommandOutput::Stderr(format!("More than one argument for type command not allowd\n"))))
+                }
+            },
+            
+            Commands::Builtin(BuiltInCommands::Pwd) => {
+                match env::current_dir() {
+                    Ok(path) => {
+                        (Some(CommandOutput::Stdout(format!("{}\n", path.display()))), None)
+                    },
+                    Err(e) => {
+                        (None, Some(CommandOutput::Stderr(format!("Error getting current directory! {}\n", e.to_string()))))
+                    }
+                }
+            },
+
+            Commands::Builtin(BuiltInCommands::CurrentDirectory) => {
+                let home = env::var("HOME").unwrap();               
+                let mut new_current_dir: String = String::new();
+                if res_args[0] == "~" {
+                    new_current_dir = home;
+                    change_current_directory(&new_current_dir);
+                    (None, None)
+                } else if res_args[0] == ".." {
+                    let current_dir = env::current_dir().unwrap().display().to_string();
+                    let vec: Vec<String> = current_dir.split("/").map(|s| s.to_string()).collect();
+                    let new_current_directory_vec = &vec[..vec.len() - 1];
+                    for i in new_current_directory_vec {
+                        new_current_dir.push_str(i);     
+                        new_current_dir.push('/');
+                    }
+                    change_current_directory(&new_current_dir);
+                    (None, None)
+                } else if res_args[0] == "." {
+                    (None, None)
+                } else {
+                    change_current_directory(&res_args[0]);
+                    (None, None)
+                }
+            },
+            
+            Commands::External(_) => {
+                let output = Command::new(command).args(&res_args[..]).output().expect("failed to execute program");
+                let stdout = output.stdout;
+                let stderr = output.stderr;
+                (Some(CommandOutput::Stdout(format!("{}", String::from_utf8_lossy(&stdout)))), Some(CommandOutput::Stderr(format!("{}", String::from_utf8_lossy(&stderr)))))
+            }
+        }
+    } else {
+        (None, Some(CommandOutput::Stderr(format!("{}: command not found\n", command))))
+    }
+}
+
+fn change_current_directory(path: &String) {
+    match env::set_current_dir(path) {
+        Ok(_) => {}
+        Err(_) => {eprintln!("cd: {}: No such file or directory", path);}
+    }
+}
+
+fn if_file_exist_and_executable(path: &String) -> bool {
+    if Path::new(path).is_file() {
+        let metadata = std::fs::metadata(path).unwrap();
+        if metadata.permissions().mode() & 0o111 != 0 {
+            return true
+        }
+    }
+    false
+}
